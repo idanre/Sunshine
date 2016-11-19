@@ -1,8 +1,11 @@
 package com.infraredhero.idan.sunshine;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.text.format.Time;
 import android.util.Log;
@@ -12,6 +15,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
@@ -27,7 +31,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class ForecastFragment extends Fragment {
 
@@ -55,10 +58,16 @@ public class ForecastFragment extends Fragment {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.action_refresh) {
-            FetchWeatherTask task = new FetchWeatherTask();
-            task.execute("Haifa,IL");
+            newFetchWeatherTask();
+            return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        newFetchWeatherTask();
     }
 
     @Override
@@ -66,18 +75,33 @@ public class ForecastFragment extends Fragment {
                              Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        ArrayList<String> weekForecast = new ArrayList<String>(Arrays.asList(new String[] {}));
-        mForecastAdapter = new ArrayAdapter<String>(
+        mForecastAdapter = new ArrayAdapter<>(
                 getActivity(),
                 R.layout.list_item_forecast,
                 R.id.list_item_forecast_textview,
-                weekForecast);
+                new ArrayList<String>());
         ListView listView = (ListView) rootView.findViewById(R.id.list_item_forecast);
         listView.setAdapter(mForecastAdapter);
 
-        AsyncTask initTask = new FetchWeatherTask().execute("Haifa, IL");
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                String forecast = mForecastAdapter.getItem(position);
+                Intent intent = new Intent(getActivity(), DetailActivity.class)
+                        .putExtra(Intent.EXTRA_TEXT, forecast);
+                startActivity(intent);
+            }
+        });
 
         return rootView;
+    }
+
+    private AsyncTask newFetchWeatherTask() {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String location = prefs.getString(getString(R.string.pref_location_key),
+                getString(R.string.pref_location_default));
+        return new FetchWeatherTask().execute(location);
     }
 
 
